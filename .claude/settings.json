@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/ForAI/.local/bin)",
+      "Bash(mv /tmp/supabase /Users/ForAI/.local/bin/supabase)",
+      "Bash(chmod +x /Users/ForAI/.local/bin/supabase)",
+      "Bash(/Users/ForAI/.local/bin/supabase --version)"
+    ]
+  }
+}

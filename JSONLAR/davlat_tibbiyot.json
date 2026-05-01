@@ -1,0 +1,60 @@
+{
+  "type" : "FeatureCollection",
+  "features" : [
+    {
+      "type" : "Feature",
+      "id" : 0,
+      "geometry" : {
+        "type" : "Point",
+        "coordinates" : [
+          72.333016400000005,
+          40.789496999999997
+        ]
+      },
+      "properties" : {
+        "FID" : 0,
+        "_uid_" : 1,
+        "viloyat" : "Andijon viloyati",
+        "tuman" : "Andijon shahar",
+        "nomi" : "1-ОП",
+        "manzil" : "Хамдўстлик МФЙ Бобуршох 3 уй"
+      }
+    },
+    {
+      "type" : "Feature",
+      "id" : 1,
+      "geometry" : {
+        "type" : "Point",
+        "coordinates" : [
+          72.333016400000005,
+          40.789496999999997
+        ]
+      },
+      "properties" : {
+        "FID" : 1,
+        "_uid_" : 2,
+        "viloyat" : "Andijon viloyati",
+        "tuman" : "Andijon shahar",
+        "nomi" : "1-туғруқ комплекси",
+        "manzil" : "Соғлом авлод МФЙ 2-кичик даха"
+      }
+    },
+    {
+      "type" : "Feature",
+      "id" : 3916,
+      "geometry" : {
+        "type" : "Point",
+        "coordinates" : [
+        ]
+      },
+      "properties" : {
+        "FID" : 3916,
+        "_uid_" : 3917,
+        "viloyat" : "Xorazm viloyati",
+        "tuman" : "Yangibozor tumani",
+        "nomi" : "туман КТМП",
+        "manzil" : "Навбахор 61"
+      }
+    }
+  ]
+}
