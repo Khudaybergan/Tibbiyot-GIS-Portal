@@ -33,5 +33,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return { response, user };
+  // Return the client so middleware can make further edge-compatible DB queries
+  // without importing server-only code (next/headers is not available in Edge).
+  return { response, user, supabase };
 }

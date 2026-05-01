@@ -47,9 +47,13 @@ export default async function UsersPage() {
   const supabase = await createClient();
 
   // ── Fetch auth users ──────────────────────────────────────────────────────
-  const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers({
+  const { data: listData, error: listError } = await adminClient.auth.admin.listUsers({
     perPage: 1000,
   });
+  if (listError || !listData) {
+    throw new Error(`Foydalanuvchilar ro'yxatini yuklab bo'lmadi: ${listError?.message ?? 'unknown error'}`);
+  }
+  const { users: authUsers } = listData;
 
   // ── Fetch profiles ────────────────────────────────────────────────────────
   const { data: profiles } = await supabase

@@ -234,8 +234,8 @@ export async function createPasswordResetRequest(
 
   // Look up user by email via listUsers filter
   // Even if user not found, respond with success (prevent enumeration)
-  const { data: { users: matchedUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-  const foundUser = matchedUsers.find((u) => u.email?.toLowerCase() === email);
+  const { data: listData } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+  const foundUser = (listData?.users ?? []).find((u) => u.email?.toLowerCase() === email);
 
   if (!foundUser) {
     return { success: true };

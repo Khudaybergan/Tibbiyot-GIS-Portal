@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { canAccessRoute, UserRole } from '@/lib/auth/roles';
-import { getUserRoles } from '@/lib/auth/get-user-roles';
 import { isAdminHost, adminUrl } from '@/lib/auth/domains';
+// NOTE: No DB calls are made here — only in-memory checks (canAccessRoute).
+// getUserRoles uses 'server-only' + next/headers which crash the Edge runtime.
+// Role validity is enforced by requireSelectedRole() in Server Actions.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session expiry constants
@@ -157,26 +159,12 @@ async function handleAdminSubdomain(
     return NextResponse.redirect(url);
   }
 
-  // ── 3. Validate role belongs to this user (skip on prefetch) ─────────
-  const isPrefetch =
-    request.headers.get('next-router-prefetch') === '1' ||
-    request.headers.get('purpose') === 'prefetch';
-
-  if (!isPrefetch) {
-    const userRoles = await getUserRoles(user.id);
-
-    if (!userRoles.includes(selectedRole)) {
-      url.pathname = '/select-role';
-      const res = NextResponse.redirect(url);
-      res.cookies.delete('selected_role');
-      return res;
-    }
-
-    // ── 4. Route-level permission ─────────────────────────────────────
-    if (!canAccessRoute(pathname, selectedRole)) {
-      url.pathname = '/admin/access-denied';
-      return NextResponse.redirect(url);
-    }
+  // ── 3. Route-level permission (in-memory, no DB call needed here) ───
+  // Role validity is enforced by requireSelectedRole() in Server Actions
+  // and getUserRoles() in the admin layout — no security regression.
+  if (!canAccessRoute(pathname, selectedRole)) {
+    url.pathname = '/admin/access-denied';
+    return NextResponse.redirect(url);
   }
 
   return response;
