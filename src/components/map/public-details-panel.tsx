@@ -10,15 +10,20 @@ import {
   Clock,
   Navigation,
   Share2,
-  ChevronRight,
   X,
   Users,
   Stethoscope,
   FlaskConical,
   Layers,
+  Car,
+  PersonStanding,
+  Bike,
+  Loader2,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
+import { formatDistance, formatDuration, type RouteProfile } from "@/lib/map/routing";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { LAYER_VISUAL } from "@/lib/geo/layer-config";
 import type { GeoFeature, GeoLayerType } from "@/lib/geo/types";
@@ -83,11 +88,7 @@ function InfoRow({
 }
 
 // Details for point features (clinics / pharmacies)
-function PointDetails({ feature, showRoute, setShowRoute }: {
-  feature: GeoFeature;
-  showRoute: boolean;
-  setShowRoute: (v: boolean) => void;
-}) {
+function PointDetails({ feature }: { feature: GeoFeature }) {
   const services = feature.services ? parseServices(feature.services) : [];
   const locationStr = [feature.district, feature.region].filter(Boolean).join(', ');
 
@@ -119,39 +120,143 @@ function PointDetails({ feature, showRoute, setShowRoute }: {
 
       <div className="h-px bg-border" />
 
-      {/* Transport section */}
-      <div className="space-y-3">
-        <h4 className="flex items-center gap-2 text-sm font-bold">
-          <Navigation className="h-4 w-4 text-primary" />
-          Transport qulayligi
-        </h4>
+      <RouteSection feature={feature} />
+    </div>
+  );
+}
+
+// ── Route section ────────────────────────────────────────────────────────────
+
+const PROFILE_META: Record<RouteProfile, { label: string; Icon: typeof Car; tint: string; bgFrom: string; bgTo: string }> = {
+  driving: { label: 'Avtomobil', Icon: Car,             tint: 'text-blue-600',    bgFrom: 'from-blue-50',    bgTo: 'to-blue-100/60' },
+  cycling: { label: 'Velosiped', Icon: Bike,            tint: 'text-emerald-600', bgFrom: 'from-emerald-50', bgTo: 'to-emerald-100/60' },
+  walking: { label: 'Piyoda',    Icon: PersonStanding,  tint: 'text-amber-600',   bgFrom: 'from-amber-50',   bgTo: 'to-amber-100/60' },
+};
+
+function RouteSection({ feature }: { feature: GeoFeature }) {
+  const {
+    routes, routesLoading, routesError,
+    routeProfile, setRouteProfile,
+    buildRoutes, clearRoutes,
+    startNavigation,
+  } = useMap();
+
+  if (!feature.coordinates) return null;
+  const dest = feature.coordinates;
+
+  return (
+    <div className="space-y-3">
+      <h4 className="flex items-center gap-2 text-sm font-bold">
+        <Navigation className="h-4 w-4 text-primary" />
+        Yo'nalish qurish
+      </h4>
+
+      {/* Build button */}
+      {!routes && !routesLoading && !routesError && (
         <Button
-          className="w-full justify-between rounded-xl px-4 py-6 shadow-md transition-all active:scale-95"
-          onClick={() => setShowRoute(!showRoute)}
+          onClick={() => buildRoutes(dest)}
+          className="group relative w-full justify-between overflow-hidden rounded-xl px-4 py-6 shadow-lg transition-all active:scale-95
+                     bg-gradient-to-r from-primary via-blue-600 to-indigo-600 hover:shadow-primary/30 hover:shadow-2xl"
         >
-          <span className="flex items-center gap-2">
-            <Route className="h-5 w-5" />
-            {showRoute ? "Yo'nalishni yashirish" : "Yaqin aeroportgacha yo'nalish"}
+          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent
+                           transition-transform duration-700 group-hover:translate-x-full" />
+          <span className="flex items-center gap-2 text-white">
+            <Sparkles className="h-5 w-5" />
+            Marshrut qurish
           </span>
-          <ChevronRight className={cn('h-4 w-4 transition-transform', showRoute && 'rotate-90')} />
+          <Route className="h-5 w-5 text-white" />
         </Button>
-        {showRoute && (
-          <div className="rounded-2xl border bg-muted/30 p-4 space-y-3 animate-in slide-in-from-top duration-300">
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Eng yaqin aeroport</p>
-            <p className="text-sm font-bold">Toshkent Xalqaro Aeroporti</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Route className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">~15 km</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">~25 daqiqa</span>
-              </div>
-            </div>
+      )}
+
+      {/* Loading */}
+      {routesLoading && (
+        <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-4 py-4 animate-in fade-in duration-200">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">Marshrutlar hisoblanmoqda…</p>
+            <p className="text-xs text-muted-foreground">3 ta rejim parallel hisoblanmoqda</p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {routesError && !routesLoading && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3 animate-in fade-in slide-in-from-top duration-300">
+          <div className="flex gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+            <p className="text-sm text-destructive font-medium leading-relaxed">{routesError}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => buildRoutes(dest)} className="w-full rounded-lg">
+            Qayta urinish
+          </Button>
+        </div>
+      )}
+
+      {/* Comparison cards */}
+      {routes && !routesLoading && (
+        <div className="space-y-3 animate-in fade-in slide-in-from-top duration-500">
+          {(Object.keys(PROFILE_META) as RouteProfile[]).map(p => {
+            const { label, Icon, tint, bgFrom, bgTo } = PROFILE_META[p];
+            const r = routes[p];
+            const active = routeProfile === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setRouteProfile(p)}
+                className={cn(
+                  'group relative w-full overflow-hidden rounded-2xl border-2 p-4 text-left transition-all',
+                  active
+                    ? `border-primary bg-gradient-to-br ${bgFrom} ${bgTo} shadow-lg scale-[1.02]`
+                    : 'border-border/50 bg-card hover:border-border hover:shadow-md hover:scale-[1.01]',
+                )}
+              >
+                {active && (
+                  <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
+                    <Sparkles className="h-3 w-3" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm', tint)}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+                    <div className="mt-0.5 flex items-baseline gap-2">
+                      <span className="text-xl font-black tabular-nums">{formatDuration(r.durationSeconds)}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                      {formatDistance(r.distanceMeters)}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+
+          {/* Start navigation CTA */}
+          <Button
+            onClick={startNavigation}
+            className="group relative mt-2 w-full overflow-hidden rounded-2xl px-4 py-7 text-base font-bold shadow-2xl transition-all active:scale-[0.98]
+                       bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:shadow-emerald-500/40"
+          >
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent
+                             transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="flex items-center justify-center gap-2 text-white">
+              <Navigation className="h-5 w-5" />
+              Boshlash
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={clearRoutes}
+            className="w-full rounded-xl text-xs text-muted-foreground"
+          >
+            <X className="mr-1.5 h-3 w-3" /> Marshrutni o'chirish
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -189,28 +294,42 @@ function BoundaryDetails({ feature }: { feature: GeoFeature }) {
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export function PublicDetailsPanel() {
-  const { selectedFeature, setSelectedFeature, showRoute, setShowRoute, isDetailsOpen, setIsDetailsOpen } = useMap();
+  const { selectedFeature, setSelectedFeature, isDetailsOpen, setIsDetailsOpen } = useMap();
   const isPoint = selectedFeature?.geometryKind === 'point';
 
   return (
     <aside
       className={cn(
-        'relative flex h-full flex-col border-l bg-card/50 backdrop-blur-sm transition-all duration-300 ease-in-out',
-        !isDetailsOpen ? 'w-0 opacity-0 pointer-events-none' : 'w-[400px] opacity-100',
+        // ─ Mobile (< lg): bottom sheet ─────────────────────────────────────
+        'absolute z-30 flex flex-col overflow-hidden bg-card/95 shadow-2xl backdrop-blur-md',
+        'inset-x-0 bottom-0 max-h-[75dvh] rounded-t-3xl border-t',
+        'transition-transform duration-300 ease-in-out will-change-transform',
+        // ─ Desktop (lg+): right sidebar ────────────────────────────────────
+        'lg:inset-y-0 lg:bottom-auto lg:right-0 lg:left-auto lg:top-0',
+        'lg:w-[400px] lg:max-h-none lg:rounded-none lg:border-l lg:border-t-0',
+        // ─ Open / closed state ─────────────────────────────────────────────
+        isDetailsOpen
+          ? 'translate-y-0 lg:translate-y-0 lg:translate-x-0'
+          : 'translate-y-full lg:translate-y-0 lg:translate-x-full',
       )}
     >
+      {/* Mobile drag-handle (visual cue only) */}
+      <div className="flex h-5 shrink-0 items-center justify-center lg:hidden">
+        <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+      </div>
+
       {!selectedFeature ? (
-        <div className="flex h-full flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300 w-[400px]">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-muted/50 text-muted-foreground">
-            <MapPin className="h-10 w-10" />
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-muted/50 text-muted-foreground">
+            <MapPin className="h-8 w-8" />
           </div>
-          <h3 className="text-xl font-bold">Ob'ekt tanlanmagan</h3>
+          <h3 className="text-lg font-bold">Ob'ekt tanlanmagan</h3>
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
             Batafsil ma'lumotni ko'rish uchun xaritadagi ob'ektlardan birini tanlang.
           </p>
         </div>
       ) : (
-        <div className="flex h-full flex-col overflow-hidden animate-in slide-in-from-right duration-300 w-[400px]">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden animate-in fade-in duration-300">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-bold">Ma'lumotlar</h3>
@@ -224,7 +343,7 @@ export function PublicDetailsPanel() {
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 px-6 pt-6 pb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-4 sm:px-6 sm:pt-6">
             <div className="space-y-5">
               {/* Title block */}
               <div>
@@ -249,19 +368,15 @@ export function PublicDetailsPanel() {
               <div className="h-px bg-border" />
 
               {isPoint ? (
-                <PointDetails
-                  feature={selectedFeature}
-                  showRoute={showRoute}
-                  setShowRoute={setShowRoute}
-                />
+                <PointDetails feature={selectedFeature} />
               ) : (
                 <BoundaryDetails feature={selectedFeature} />
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Footer actions */}
-          <div className="grid grid-cols-2 gap-3 p-6 border-t bg-muted/10">
+          <div className="grid grid-cols-2 gap-3 border-t bg-muted/10 p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <Button
               variant="outline"
               className="rounded-xl"

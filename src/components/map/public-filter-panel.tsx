@@ -70,11 +70,14 @@ export function PublicFilterPanel() {
   return (
     <aside
       className={cn(
-        'relative flex h-full flex-col border-r bg-card/50 backdrop-blur-sm transition-all duration-300 ease-in-out',
-        !isFilterOpen ? 'w-0 opacity-0 pointer-events-none' : 'w-[380px] opacity-100',
+        // Floating drawer over the map — slide from left, full-height
+        'absolute inset-y-0 left-0 z-30 flex flex-col border-r bg-card/95 backdrop-blur-md shadow-2xl',
+        'w-[min(85vw,380px)] lg:w-[380px]',
+        'transition-transform duration-300 ease-in-out will-change-transform',
+        isFilterOpen ? 'translate-x-0' : '-translate-x-full',
       )}
     >
-      <div className="flex h-full flex-col p-6 w-[380px]">
+      <div className="flex h-full flex-col p-5 sm:p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">

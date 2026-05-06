@@ -207,11 +207,14 @@ export async function loadTuman() {
 }
 
 // ── Mahalla boundaries (mahalla.geojson) ──────────────────────────────────────
-// WGS84 MultiPolygon · fields: nomi, nomi2, tuman, aholi_soni, Mahalla_ID, time-slot fields
+// Accepts either standard GeoJSON FeatureCollection OR Esri REST FeatureSet
+// (the file has been re-exported from ArcGIS in both formats over time).
+// Fields: nomi, nomi2, tuman, tuman_id, aholi_soni, Mahalla_ID, _uid_, FID
 export async function loadMahalla() {
   try {
     const raw = await fetchJson('/geo/data/mahalla.geojson');
-    const fc = raw as FeatureCollection;
+    const isEsri = (raw as { geometryType?: string }).geometryType?.startsWith('esri');
+    const fc = isEsri ? esriToGeoJSON(raw) : (raw as FeatureCollection);
 
     const features: GeoFeature[] = fc.features.map((f: Feature, i: number) => {
       const p = (f.properties ?? {}) as Record<string, unknown>;
